@@ -65,3 +65,22 @@ func (f inspector) Visit(expr Expression) Visitor {
 func Inspect(expr Expression, f func(expr Expression) bool) {
 	Walk(inspector(f), expr)
 }
+
+// InspectNode traverses the plan in depth-first order: It starts by calling
+// f(node); node must not be nil. If f returns true, InspectNode invokes f
+// recursively for each of the children of node, followed by a call of
+// f(nil).
+func InspectNode(node Node, f func(node Node) bool) {
+	// Since nodeWalk is only used here and altogether short, it's here to not pollute the namespace
+	var nodeWalk func (v func(Node) bool, n Node)
+	nodeWalk = func (v func(Node) bool, n Node) {
+		if !v(n) {
+			return
+		}
+		for _, child := range n.Children() {
+			nodeWalk(v, child)
+		}
+		_ = v(nil)
+	}
+	nodeWalk(f, node)
+}
